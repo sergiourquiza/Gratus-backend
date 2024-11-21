@@ -48,15 +48,26 @@ exports.createProduct = async (req, res) => {
   try {
     const { name, description, price, image } = req.body;
 
-    if (!name || !price) {
-      return res.status(400).json({ message: 'Name and price are required' });
+    // Validaciones más estrictas
+    if (!name || name.trim() === '') {
+      return res.status(400).json({ message: 'Name is required and cannot be empty' });
+    }
+
+    if (!price || isNaN(parseFloat(price)) || parseFloat(price) < 0) {
+      return res.status(400).json({ message: 'Valid price is required' });
+    }
+
+    // Validación opcional de URL de imagen
+    const imageUrlRegex = /^(https?:\/\/).*\.(jpg|jpeg|png|gif)$/i;
+    if (image && !imageUrlRegex.test(image)) {
+      return res.status(400).json({ message: 'Invalid image URL' });
     }
 
     const newProduct = await Product.create({
-      name,
-      description,
+      name: name.trim(),
+      description: description ? description.trim() : '',
       price: parseFloat(price),
-      image
+      image: image || '' 
     });
 
     res.status(201).json({
@@ -67,7 +78,12 @@ exports.createProduct = async (req, res) => {
       image: newProduct.image
     });
   } catch (error) {
-    res.status(500).json({ message: 'Error creating product', error: error.message });
+    console.error('Product creation error:', error); 
+    res.status(500).json({ 
+      message: 'Error creating product', 
+      error: error.message,
+      details: error.stack 
+    });
   }
 };
 
