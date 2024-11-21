@@ -1,11 +1,28 @@
 const { Product } = require('../models');
+const { Op } = require('sequelize');
+
 
 exports.getAllProducts = async (req, res) => {
   try {
     const products = await Product.findAll();
-    res.json(products);
+  
+    console.log('Productos encontrados:', products);
+
+    const formattedProducts = products.map((product) => ({
+      id: product.id,
+      name: product.name,
+      description: product.description,
+      price: parseFloat(product.price).toFixed(2), 
+      image: product.image,
+    }));
+
+    res.json(formattedProducts);
   } catch (error) {
-    res.status(500).json({ message: 'Server error', error: error.message });
+    console.error('Error al obtener productos:', error);
+    res.status(500).json({ 
+      message: 'Error del servidor', 
+      error: error.message 
+    });
   }
 };
 
@@ -15,7 +32,13 @@ exports.getProductById = async (req, res) => {
     if (!product) {
       return res.status(404).json({ message: 'Product not found' });
     }
-    res.json(product);
+    res.json({
+      id: product.id,
+      name: product.name,
+      description: product.description,
+      price: parseFloat(product.price).toFixed(2),
+      image: product.image,
+    });
   } catch (error) {
     res.status(500).json({ message: 'Server error', error: error.message });
   }
@@ -32,11 +55,17 @@ exports.createProduct = async (req, res) => {
     const newProduct = await Product.create({
       name,
       description,
-      price,
+      price: parseFloat(price),
       image
     });
 
-    res.status(201).json(newProduct);
+    res.status(201).json({
+      id: newProduct.id,
+      name: newProduct.name,
+      description: newProduct.description,
+      price: parseFloat(newProduct.price).toFixed(2),
+      image: newProduct.image
+    });
   } catch (error) {
     res.status(500).json({ message: 'Error creating product', error: error.message });
   }
@@ -54,12 +83,18 @@ exports.updateProduct = async (req, res) => {
 
     product.name = name || product.name;
     product.description = description || product.description;
-    product.price = price || product.price;
+    product.price = price ? parseFloat(price) : product.price; 
     product.image = image || product.image;
 
     await product.save();
 
-    res.json(product);
+    res.json({
+      id: product.id,
+      name: product.name,
+      description: product.description,
+      price: parseFloat(product.price).toFixed(2),
+      image: product.image
+    });
   } catch (error) {
     res.status(500).json({ message: 'Error updating product', error: error.message });
   }
@@ -74,7 +109,6 @@ exports.deleteProduct = async (req, res) => {
       return res.status(404).json({ message: 'Product not found' });
     }
 
-    // Eliminar el producto
     await product.destroy();
     
     res.json({ message: 'Product deleted successfully' });
@@ -82,3 +116,30 @@ exports.deleteProduct = async (req, res) => {
     res.status(500).json({ message: 'Error deleting product', error: error.message });
   }
 };
+
+exports.searchProducts = async (req, res) => {
+  try {
+    const { query } = req.query;
+
+    if (!query) {
+      return res.status(400).json({ message: 'No se proporcionó un texto de búsqueda' });
+    }
+
+    const products = await Product.findAll({
+      where: {
+        name: {
+          [Op.iLike]: `%${query}%`,
+        },
+      },
+    });
+
+    return res.status(200).json(products);
+  } catch (error) {
+    console.error('Error buscando productos:', error);
+    return res.status(500).json({ message: 'Error buscando productos' });
+  }
+};
+
+
+
+
