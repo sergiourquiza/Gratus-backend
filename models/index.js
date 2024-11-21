@@ -1,7 +1,7 @@
 const { sequelize } = require('../config/database');  
-const User = require('./User');
-const Product = require('./Product');
-const Order = require('./Order');
+const User = require('./user');
+const Product = require('./product');
+const Order = require('./order');
 const { Cart, CartItem } = require('./cart');
 
 User.hasMany(Order);
